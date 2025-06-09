@@ -98,6 +98,8 @@ export function useRobotControl(initialJointDetails: JointDetails[]) {
             const positionInDegrees = servoPositionToAngle(servoPosition);
             initialPos.push(positionInDegrees);
             newStates[i].realDegrees = positionInDegrees;
+            newStates[i].virtualDegrees = positionInDegrees; // Initialize virtual degrees to the current position
+
 
             // Enable torque for revolute servos
             await scsServoSDK.writeTorqueEnable(jointDetails[i].servoId, true);
@@ -167,22 +169,13 @@ export function useRobotControl(initialJointDetails: JointDetails[]) {
 
         if (isConnected) {
           try {
-            const relativeValue = (initialPositions[jointIndex] || 0) + value; // Calculate relative position
-            // Check if relativeValue is within the valid range (0-360 degrees)
-            if (relativeValue >= 0 && relativeValue <= 360) {
-              const servoPosition = degreesToServoPosition(relativeValue); // Use utility function
-              await scsServoSDK.writePosition(
-                servoId,
-                Math.round(servoPosition)
-              );
-              newStates[jointIndex].realDegrees = relativeValue; // Update relative realDegrees
-            } else {
-              console.warn(
-                `Relative value ${relativeValue} for servo ${servoId} is out of range (0-360). Skipping update.`
-              );
-              // Optionally update realDegrees to reflect the attempted value or keep it as is
-              // newStates[jointIndex].realDegrees = relativeValue; // Or keep the previous value
-            }
+            const relativeValue = value; // Calculate relative position
+            const servoPosition = degreesToServoPosition(relativeValue); // Use utility function
+            console.log(`Updating servoId ${servoId} to position:`, servoPosition, "degrees:", relativeValue);
+            await scsServoSDK.writePosition(
+              servoId,
+              Math.round(servoPosition)
+            );
           } catch (error) {
             console.error(
               `Failed to update servo degrees for joint with servoId ${servoId}:`,
@@ -251,19 +244,12 @@ export function useRobotControl(initialJointDetails: JointDetails[]) {
 
           // Only calculate and check relative value if connected
           if (isConnected) {
-            const relativeValue = (initialPositions[jointIndex] || 0) + value; // Calculate relative position
-            // Check if relativeValue is within the valid range (0-360 degrees)
-            if (relativeValue >= 0 && relativeValue <= 360) {
-              const servoPosition = degreesToServoPosition(relativeValue); // Use utility function
-              servoPositions[servoId] = Math.round(servoPosition);
-              validUpdates.push({ servoId, value, relativeValue }); // Store valid updates
-            } else {
-              console.warn(
-                `Relative value ${relativeValue} for servo ${servoId} is out of range (0-360). Skipping update in sync write.`
-              );
-              // Optionally update realDegrees for the skipped joint here or after the sync write
-              // newStates[jointIndex].realDegrees = relativeValue; // Or keep the previous value
-            }
+            const relativeValue = value; // Calculate relative position
+            const servoPosition = degreesToServoPosition(relativeValue); // Use utility function
+                        console.log(`Updating servoId ${servoId} to position:`, servoPosition, "degrees:", relativeValue);
+
+            servoPositions[servoId] = Math.round(servoPosition);
+            validUpdates.push({ servoId, value, relativeValue }); // Store valid updates
           }
         }
       });
@@ -279,6 +265,7 @@ export function useRobotControl(initialJointDetails: JointDetails[]) {
             );
             if (jointIndex !== -1) {
               newStates[jointIndex].realDegrees = relativeValue; // Update realDegrees
+              newStates[jointIndex].virtualDegrees = relativeValue; // 
             }
           });
         } catch (error) {
