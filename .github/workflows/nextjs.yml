@@ -1,7 +1,3 @@
-# Sample workflow for building and deploying a Next.js site to GitHub Pages
-#
-# To get started with Next.js see: https://nextjs.org/docs/getting-started
-#
 name: Deploy Next.js site to Pages
 
 on:
@@ -19,13 +15,8 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  # Build job
   build:
     runs-on: ubuntu-latest
-
-    defaults:
-      run:
-        working-directory: website  # ✅ All `run:` commands operate inside /website
 
     steps:
       - name: Checkout
@@ -34,12 +25,12 @@ jobs:
       - name: Detect package manager
         id: detect-package-manager
         run: |
-          if [ -f "yarn.lock" ]; then
+          if [ -f "website/yarn.lock" ]; then
             echo "manager=yarn" >> $GITHUB_OUTPUT
             echo "command=install" >> $GITHUB_OUTPUT
             echo "runner=yarn" >> $GITHUB_OUTPUT
             exit 0
-          elif [ -f "package.json" ]; then
+          elif [ -f "website/package.json" ]; then
             echo "manager=npm" >> $GITHUB_OUTPUT
             echo "command=ci" >> $GITHUB_OUTPUT
             echo "runner=npx --no-install" >> $GITHUB_OUTPUT
@@ -64,22 +55,21 @@ jobs:
         with:
           path: |
             website/.next/cache
-          key: ${{ runner.os }}-nextjs-${{ hashFiles('website/**/package-lock.json', 'website/**/yarn.lock') }}-${{ hashFiles('website/**/*.[jt]s', 'website/**/*.[jt]sx') }}
+          key: ${{ runner.os }}-nextjs-${{ hashFiles('website/package-lock.json', 'website/yarn.lock') }}-${{ hashFiles('website/**/*.[jt]s', 'website/**/*.[jt]sx') }}
           restore-keys: |
-            ${{ runner.os }}-nextjs-${{ hashFiles('website/**/package-lock.json', 'website/**/yarn.lock') }}-
+            ${{ runner.os }}-nextjs-${{ hashFiles('website/package-lock.json', 'website/yarn.lock') }}-
 
       - name: Install dependencies
-        run: ${{ steps.detect-package-manager.outputs.manager }} ${{ steps.detect-package-manager.outputs.command }}
+        run: cd website && ${{ steps.detect-package-manager.outputs.manager }} ${{ steps.detect-package-manager.outputs.command }}
 
       - name: Build with Next.js
-        run: ${{ steps.detect-package-manager.outputs.runner }} next build
+        run: cd website && ${{ steps.detect-package-manager.outputs.runner }} next build
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: website/out  # ✅ Output path is relative to the repo root
+          path: website/out  # must be relative to repo root
 
-  # Deployment job
   deploy:
     environment:
       name: github-pages
