@@ -3,22 +3,87 @@ import React, { useState, useEffect, useRef } from "react";
 import { generateText, tool } from "ai";
 import { createOpenAI } from "@ai-sdk/openai";
 import { SettingsModal } from "./SettingsModal";
-import { z } from "zod";
+import { array, z } from "zod";
 import {
   getApiKeyFromLocalStorage,
   getBaseURLFromLocalStorage,
   getSystemPromptFromLocalStorage,
   getModelFromLocalStorage,
 } from "../../lib/settings";
+import {
+  JointState,
+  UpdateJointDegrees,
+  UpdateJointsDegrees,
+} from "../../hooks/useRobotControl";
+
+async function captureWebcamImage(): Promise<string> {
+  return new Promise(async (resolve, reject) => {
+    try {
+      // Request access to the webcam
+      const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+
+      // Create a video element to play the stream
+      const video = document.createElement("video");
+      video.srcObject = stream;
+      video.play();
+
+      video.onloadedmetadata = () => {
+        // Create canvas and draw video frame when ready
+        const canvas = document.createElement("canvas");
+        canvas.width = video.videoWidth;
+        canvas.height = video.videoHeight;
+
+        const context = canvas.getContext("2d");
+        if (!context) return reject("Could not get canvas context");
+
+        // Draw the current video frame onto the canvas
+        context.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+        // Stop the video stream
+        stream.getTracks().forEach((track) => track.stop());
+
+        // Get the JPEG data URL
+        const jpegDataUrl = canvas.toDataURL("image/jpeg", 0.9); // 0.0–1.0 quality
+        resolve(jpegDataUrl);
+      };
+    } catch (err) {
+      reject(err);
+    }
+  });
+}
+
+function extractJsonArray(text: string): number[][] | null {
+  const match = text.match(/```json\s*([\s\S]*?)\s*```/);
+  if (!match) {
+    console.error("No JSON block found");
+    return null;
+  }
+
+  try {
+    const jsonStr = match[1].trim();
+    const parsed = JSON.parse(jsonStr);
+    if (Array.isArray(parsed) && parsed.every(Array.isArray)) {
+      return parsed as number[][];
+    } else {
+      console.error("Parsed JSON is not an array of arrays");
+      return null;
+    }
+  } catch (e) {
+    console.error("Failed to parse JSON:", e);
+    return null;
+  }
+}
 
 type ChatControlProps = {
   robotName?: string;
   systemPrompt?: string;
+  updateJointsDegrees: UpdateJointsDegrees;
 };
 
 export function ChatControl({
   robotName,
   systemPrompt: configSystemPrompt,
+  updateJointsDegrees: UpdateJointsDegrees,
 }: ChatControlProps) {
   const [input, setInput] = useState("");
   const [messages, setMessages] = useState<{ sender: string; text: string }[]>(
@@ -26,7 +91,7 @@ export function ChatControl({
   );
   const [showSettings, setShowSettings] = useState(false);
 
-  const apiKey = getApiKeyFromLocalStorage();
+  const apiKey = getApiKeyFromLocalStorage() || "";
   const baseURL = getBaseURLFromLocalStorage() || "https://api.openai.com/v1/";
   const model = getModelFromLocalStorage() || "gpt-4.1-nano";
   const systemPrompt =
@@ -43,64 +108,46 @@ export function ChatControl({
   const handleCommand = async (command: string) => {
     setMessages((prev) => [...prev, { sender: "User", text: command }]);
     try {
+      const image = await captureWebcamImage();
       const result = await generateText({
         model: openai(model),
-        prompt: command,
-        system: systemPrompt,
-        tools: {
-          keyPress: tool({
-            description:
-              "Press and hold a keyboard key for a specified duration (in milliseconds) to control the robot",
-            parameters: z.object({
-              key: z
-                .string()
-                .describe(
-                  "The key to press (e.g., 'w', 'a', 's', 'd', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight')"
-                ),
-              duration: z
-                .number()
-                .int()
-                .min(100)
-                .max(5000)
-                .default(1000)
-                .describe(
-                  "How long to hold the key in milliseconds (default: 1000, min: 100, max: 5000)"
-                ),
-            }),
-            execute: async ({
-              key,
-              duration,
-            }: {
-              key: string;
-              duration?: number;
-            }) => {
-              const holdTime = duration ?? 1000;
-              const keydownEvent = new KeyboardEvent("keydown", {
-                key,
-                bubbles: true,
-              });
-              window.dispatchEvent(keydownEvent);
-
-              // Wait for the specified duration
-              await new Promise((resolve) => setTimeout(resolve, holdTime));
-
-              // Simulate keyup event
-              const keyupEvent = new KeyboardEvent("keyup", {
-                key,
-                bubbles: true,
-              });
-              window.dispatchEvent(keyupEvent);
-              return `Held key "${key.toUpperCase()}" for ${holdTime} ms`;
-            },
-          }),
-        },
+        messages: [
+          {
+            role: "user",
+            content: [
+              {
+                type: "text",
+                text: command,
+              },
+              {
+                type: "image",
+                image: image,
+                // Sets image detail configuration for image part:
+              },
+            ],
+          },
+        ],
       });
       let text = result.text.trim();
       const content = result.response?.messages[1]?.content;
       for (const element of content ?? []) {
-        text += `\n\n${element.result}`;
+        text += `\n\n${element}`;
       }
       setMessages((prev) => [...prev, { sender: "AI", text }]);
+      let arrays = extractJsonArray(text);
+      if (arrays) {
+        for (const array of arrays) {
+          // If the text contains a JSON array, update joint states
+          const jointStates = array.map((angle, index) => ({
+            servoId: index,
+            value: angle,
+          }));
+
+          UpdateJointsDegrees(jointStates);
+          // Wait for 1 second before processing the next command
+          await new Promise((resolve) => setTimeout(resolve, 100));
+        }
+      }
     } catch (error) {
       console.error("Error generating text:", error);
       setMessages((prev) => [
