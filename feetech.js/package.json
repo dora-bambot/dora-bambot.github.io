@@ -34,5 +34,8 @@
   "bugs": {
     "url": "https://github.com/timqian/bambot/issues"
   },
-  "homepage": "https://github.com/timqian/bambot/tree/main/feetech.js"
+  "homepage": "https://github.com/timqian/bambot/tree/main/feetech.js",
+  "dependencies": {
+    "feetech.js": "^0.0.8"
+  }
 }

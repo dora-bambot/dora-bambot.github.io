@@ -35,6 +35,14 @@ export default function Home() {
       playLink: "/play/sts3215",
       assembleLink: "",
     },
+        {
+      id: 4,
+      name: "so-arm101",
+      image: "/so-arm100.jpg",
+      playLink: "/play/so-arm101",
+      assembleLink:
+        "https://github.com/huggingface/lerobot/blob/main/examples/10_use_so100.md",
+    },
     // {
     //   id: 3,
     //   name: "bambot base v0",

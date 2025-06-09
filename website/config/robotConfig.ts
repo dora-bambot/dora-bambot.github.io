@@ -39,6 +39,68 @@ export type RobotConfig = {
 
 // Define configuration map per slug
 export const robotConfigMap: { [key: string]: RobotConfig } = {
+    "so-arm101": {
+    urdfUrl: "/URDF/so101.urdf",
+    camera: { position: [-20, 10, -15], fov: 20 },
+    orbitTarget: [0, 1, 0],
+    keyboardControlMap: {
+      1: ["1", "q"],
+      2: ["2", "w"],
+      3: ["3", "e"],
+      4: ["4", "r"],
+      5: ["5", "t"],
+      6: ["6", "y"],
+    },
+    jointNameIdMap: {
+      1: 1,
+      2: 2,
+      3: 3,
+      4: 4,
+      5: 5,
+      6: 6,
+    },
+    compoundMovements: [
+      // Jaw compound movements
+      {
+        name: "Jaw down & up",
+        keys: ["8", "i"],
+        primaryJoint: 2,
+        primaryFormula: "primary < 0 ? 1 : -1", // Example: sign depends on primary and dependent
+        dependents: [
+          {
+            joint: 3,
+            formula: "primary < 0 ? -1.9 * deltaPrimary : 0.4 * deltaPrimary",
+            // formula: "- deltaPrimary * (0.13 * Math.sin(primary * (Math.PI / 180)) + 0.13 * Math.sin((primary-dependent) * (Math.PI / 180)))/(0.13 * Math.sin((primary - dependent) * (Math.PI / 180)))",
+          },
+          {
+            joint: 4,
+            formula:
+              "primary < 0 ? (primary < 10 ? 0 : 0.51 * deltaPrimary) : -0.4 * deltaPrimary",
+          },
+        ],
+      },
+      {
+        name: "Jaw backward & forward",
+        keys: ["o", "u"],
+        primaryJoint: 2,
+        primaryFormula: "1",
+        dependents: [
+          {
+            joint: 3,
+            formula: "-0.9* deltaPrimary",
+          },
+        ],
+      },
+    ],
+    systemPrompt: `You can help control the so-arm100 robot by pressing keyboard keys. Use the keyPress tool to simulate key presses. Each key will be held down for 1 second by default. If the user describes roughly wanting to make it longer or shorter, adjust the duration accordingly.
+    The robot can be controlled with the following keys:
+    - "q" and "1" for rotate the bot to left and right
+    - "i" and "8" for moving the bot/jaw down("i") and up("8")
+    - "u" and "o" for moving the bot/jaw backward("u") and forward("o")
+    - "6" to open the jaw and "y" to close the jaw
+    - "t" and "5" for rotating jaw
+    `,
+  },
   "so-arm100": {
     urdfUrl: "/URDF/so_arm100.urdf",
     camera: { position: [-20, 10, -15], fov: 20 },
