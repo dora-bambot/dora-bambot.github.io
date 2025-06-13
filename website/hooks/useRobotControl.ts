@@ -81,7 +81,8 @@ export function useRobotControl(initialJointDetails: JointDetails[]) {
   // Connect to the robot
   const connectRobot = useCallback(async () => {
     try {
-      await scsServoSDK.connect();
+      let connection = await scsServoSDK.connect();
+      
       setIsConnected(true);
       console.log("Robot connected successfully.");
 
@@ -118,6 +119,7 @@ export function useRobotControl(initialJointDetails: JointDetails[]) {
       setJointStates(newStates);
     } catch (error) {
       console.error("Failed to connect to the robot:", error);
+      throw new Error("Failed to connect to the robot.")
     }
   }, [jointStates, jointDetails]);
 

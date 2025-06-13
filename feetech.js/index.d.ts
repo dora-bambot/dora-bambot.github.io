@@ -7,8 +7,8 @@ export type ServoPositions = Map<number, number> | Record<number, number>;
 export type ServoSpeeds = Map<number, number> | Record<number, number>; // New type alias for speeds
 
 export interface ScsServoSDK {
-  connect(options?: ConnectionOptions): Promise<true>;
-  disconnect(): Promise<true>;
+  connect(options?: ConnectionOptions): Promise<bool>;
+  disconnect(): Promise<bool>;
   readPosition(servoId: number): Promise<number>;
   readBaudRate(servoId: number): Promise<number>;
   readMode(servoId: number): Promise<number>;

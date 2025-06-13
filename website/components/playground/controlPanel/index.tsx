@@ -11,6 +11,7 @@ import {
 import { RevoluteJointsTable } from "./RevoluteJointsTable"; // Updated import path
 import { ContinuousJointsTable } from "./ContinuousJointsTable"; // Updated import path
 import { RobotConfig } from "@/config/robotConfig";
+import Link from "next/link";
 
 // const baudRate = 1000000; // Define baud rate for serial communication - Keep if needed elsewhere, remove if only for UI
 
@@ -44,15 +45,16 @@ export function ControlPanel({
 }: ControlPanelProps) {
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [connectionStatus, setConnectionStatus] = useState<
-    "idle" | "connecting" | "disconnecting"
+    "idle" | "connecting" | "disconnecting" | "failed"
   >("idle");
 
   const handleConnect = async () => {
     setConnectionStatus("connecting");
     try {
       await connectRobot();
-    } finally {
       setConnectionStatus("idle");
+    } catch {
+      setConnectionStatus("failed");
     }
   };
 
@@ -90,6 +92,7 @@ export function ControlPanel({
     <div className="absolute bottom-5 left-5 bg-zinc-900 bg-opacity-80 text-white p-4 rounded-lg max-h-[90vh] overflow-y-auto z-50 text-sm">
       <h3 className="mt-0 mb-4 border-b border-zinc-600 pb-1 font-bold text-base flex justify-between items-center">
         <span>Joint Controls</span>
+
         <button
           onClick={() => setIsCollapsed(true)}
           className="ml-2 text-xl hover:bg-zinc-800 px-2 rounded-full"
@@ -123,16 +126,24 @@ export function ControlPanel({
       <div className="mt-4 flex justify-between items-center">
         <button
           onClick={isConnected ? handleDisconnect : handleConnect}
-          disabled={connectionStatus !== "idle"}
-          className={`text-white text-sm px-3 py-1.5 rounded w-full ${
-            isConnected
+          disabled={
+            connectionStatus !== "idle" && connectionStatus !== "failed"
+          }
+          className={`text-sm px-3 py-1.5 rounded w-full ${
+            connectionStatus === "failed"
+              ? "bg-orange-600 hover:bg-orange-500"
+              : isConnected
               ? "bg-red-600 hover:bg-red-500"
               : "bg-blue-600 hover:bg-blue-500"
-          } ${
-            connectionStatus !== "idle" ? "opacity-50 cursor-not-allowed" : ""
+          }  "text-white"  ${
+            connectionStatus !== "idle" && connectionStatus !== "failed"
+              ? "opacity-50 cursor-not-allowed"
+              : ""
           }`}
         >
-          {connectionStatus === "connecting"
+          {connectionStatus === "failed"
+            ? "Failed. Check serial port permissions. On linux, fix it with: sudo chmod 776 /dev/ttyACM0"
+            : connectionStatus === "connecting"
             ? "Connecting..."
             : connectionStatus === "disconnecting"
             ? "Disconnecting..."
@@ -141,6 +152,13 @@ export function ControlPanel({
             : "Connect Real Robot"}
         </button>
       </div>
+      <br />
+      <Link
+        className="text-blue"
+        href="https://github.com/dora-bambot/dora-bambot.github.io/tree/main/website/public/URDF"
+      >
+        Click me to get the URDF
+      </Link>
     </div>
   );
 }
