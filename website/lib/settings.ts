@@ -3,19 +3,30 @@ const BASE_URL = "base_url";
 const MODEL = "model";
 
 export function getApiKeyFromLocalStorage(): string {
-  return localStorage.getItem(API_KEY) || "";
+    if (typeof window !== 'undefined') {
+
+  return window.localStorage.getItem(API_KEY) || "";
+    }
+    return "";
 }
 
 export function setApiKeyToLocalStorage(key: string) {
-  localStorage.setItem(API_KEY, key);
+  if (typeof window !== 'undefined') {
+    window.localStorage.setItem(API_KEY, key);
+  }
 }
 
 export function getBaseURLFromLocalStorage(): string {
-  return localStorage.getItem(BASE_URL) || "";
+  if (typeof window !== 'undefined') {
+    return window.localStorage.getItem(BASE_URL) || "";
+  }
+  return ""; 
 }
 
 export function setBaseURLToLocalStorage(url: string) {
-  localStorage.setItem(BASE_URL, url);
+  if (typeof window !== 'undefined') {
+    window.localStorage.setItem(BASE_URL, url);
+  }
 }
 
 function systemPromptKey(robotName?: string) {
@@ -23,22 +34,33 @@ function systemPromptKey(robotName?: string) {
 }
 
 export function getSystemPromptFromLocalStorage(robotName?: string): string {
-  return localStorage.getItem(systemPromptKey(robotName)) || "";
+  if (typeof window !== 'undefined') {
+    return window.localStorage.getItem(systemPromptKey(robotName)) || "";
+  } else {
+    return "";
+  }
 }
 
 export function setSystemPromptToLocalStorage(
   prompt: string,
   robotName?: string
 ) {
-  localStorage.setItem(systemPromptKey(robotName), prompt);
+  if (typeof window !== 'undefined') {
+    window.localStorage.setItem(systemPromptKey(robotName), prompt);
+  }
 }
 
 export function getModelFromLocalStorage(): string {
-  return localStorage.getItem(MODEL) || "";
+  if (typeof window !== 'undefined') {
+    return localStorage.getItem(MODEL) || "";
+  }
+  return "";
 }
 
 export function setModelToLocalStorage(model: string) {
-  localStorage.setItem(MODEL, model);
+  if (typeof window !== 'undefined') {
+    localStorage.setItem(MODEL, model);
+  }
 }
 
 // 后续可以添加更多设置项的 get/set 方法
