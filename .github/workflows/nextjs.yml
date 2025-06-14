@@ -40,7 +40,7 @@ jobs:
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: website/out  # Output directory for static export
+          path: website/out # Output directory for static export
 
   deploy:
     needs: build
@@ -53,3 +53,34 @@ jobs:
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
+
+  deploy-hf:
+    needs: build
+    runs-on: ubuntu-latest
+
+    steps:
+      # 2. Set up Python, which is needed to install and run the huggingface_hub CLI
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+
+      # 3. Install the Hugging Face Hub library
+      - name: Install Hugging Face Hub CLI
+        run: pip install -U huggingface_hub
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
+      - name: Push to Hugging Face Hub
+        env:
+          # The Hugging Face token we stored in GitHub Secrets
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+        run: |
+          # The 'huggingface-cli upload' command is the core of this step.
+          # It takes the repo ID, the local source folder, and the target path in the repo.
+          huggingface-cli upload \
+            --repo-type space \
+            haixuantao/dora-bambot \
+            website/out \
+            . \
+            --commit-message "Deploy from GitHub Action ${{ github.sha }}"
