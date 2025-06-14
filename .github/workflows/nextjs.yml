@@ -81,6 +81,6 @@ jobs:
           huggingface-cli upload \
             --repo-type space \
             haixuantao/dora-bambot \
-            website/out \
+            ./website/out \
             . \
             --commit-message "Deploy from GitHub Action ${{ github.sha }}"
