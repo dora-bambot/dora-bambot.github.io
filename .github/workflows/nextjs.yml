@@ -42,22 +42,7 @@ jobs:
         with:
           path: website/out # Output directory for static export
 
-  deploy:
-    needs: build
-    runs-on: ubuntu-latest
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-
-    steps:
-      - name: Deploy to GitHub Pages
-        id: deployment
-        uses: actions/deploy-pages@v4
-
-  deploy-hf:
-    needs: build
-    runs-on: ubuntu-latest
-    steps:
+      # Push to Hugging Face Spaces
       - name: Set up Python
         uses: actions/setup-python@v5
       - name: Install Hugging Face Hub CLI
@@ -72,3 +57,15 @@ jobs:
             ./website/out \
             . \
             --commit-message "Deploy from GitHub Action ${{ github.sha }}"
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
